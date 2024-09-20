@@ -13,8 +13,8 @@ class CalendarClient {
   );
   static const _scopes = [calendar.CalendarApi.calendarScope];
 
-  Future<void> insert(
-      String title, String des, DateTime startTime, DateTime endTime) async {
+  Future<void> insert(String title, String des, DateTime startTime,
+      DateTime endTime, List<String> attendees) async {
     try {
       final GoogleSignInAccount? account = await googleSignIn.signIn();
       final GoogleSignInAuthentication googleAuth =
@@ -26,7 +26,7 @@ class CalendarClient {
           AccessToken(
             'Bearer',
             googleAuth.accessToken!,
-            DateTime.now().toUtc().add(const Duration(hours: 1)), // แปลงเป็น UTC
+            DateTime.now().toUtc().add(const Duration(hours: 1)),
           ),
           googleAuth.idToken,
           _scopes,
@@ -34,7 +34,7 @@ class CalendarClient {
       );
 
       var calendarApi = calendar.CalendarApi(client);
-      // ดึงอีเมลของผู้ใช้
+
       String? email = await getUserEmail(client);
       if (email != null) {
         print("Event will be added to the calendar of: $email");
@@ -46,7 +46,6 @@ class CalendarClient {
       event.summary = title;
       event.description = des;
 
-      // สร้าง EventDateTime สำหรับวันเริ่มต้นและวันสิ้นสุด
       event.start = calendar.EventDateTime(
         dateTime: DateTime.utc(startTime.year, startTime.month, startTime.day,
             startTime.hour, startTime.minute),
@@ -56,6 +55,26 @@ class CalendarClient {
         dateTime: DateTime.utc(endTime.year, endTime.month, endTime.day,
             endTime.hour, endTime.minute),
         timeZone: "Asia/Bangkok",
+      );
+
+      // เพิ่มผู้เข้าร่วม
+      event.attendees = attendees
+          .map((email) => calendar.EventAttendee(email: email))
+          .toList();
+
+      // ตั้งค่าการแจ้งเตือน
+      event.reminders = calendar.EventReminders(
+        useDefault: false,
+        overrides: [
+          calendar.EventReminder(
+            method: 'email',
+            minutes: 10, // แจ้งเตือน 10 นาทีล่วงหน้า
+          ),
+          calendar.EventReminder(
+            method: 'popup',
+            minutes: 10, // แจ้งเตือนแบบป๊อปอัป 10 นาทีล่วงหน้า
+          ),
+        ],
       );
 
       await calendarApi.events.insert(event, calendarId);
@@ -100,6 +119,7 @@ class _CalendarPageState extends State<CalendarPage> {
   final CalendarClient _calendarClient = CalendarClient();
   final _eventController = TextEditingController();
   final _destController = TextEditingController();
+  final _attendeesController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _startTime = TimeOfDay.now();
   TimeOfDay _endTime = TimeOfDay.now();
@@ -138,6 +158,10 @@ class _CalendarPageState extends State<CalendarPage> {
       _destController.text,
       startDateTime,
       endDateTime,
+      _attendeesController.text
+          .split(',')
+          .map((email) => email.trim())
+          .toList(), // ส่งอีเมลผู้เข้าร่วม
     );
 
     _eventController.clear();
@@ -241,9 +265,19 @@ class _CalendarPageState extends State<CalendarPage> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _attendeesController,
+              decoration: const InputDecoration(
+                  labelText: "Attendees (comma separated)"),
+            ),
+          ),
           ElevatedButton(
             onPressed: _isLoading ? null : _addEvent,
-            child: _isLoading ? const CircularProgressIndicator() : const Text("Add Event"),
+            child: _isLoading
+                ? const CircularProgressIndicator()
+                : const Text("Add Event"),
           ),
         ],
       ),
