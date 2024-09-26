@@ -13,9 +13,9 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId:
-      '124029177677-17novlg6glliavomva8iunqa1c7bu50u.apps.googleusercontent.com',
+        '124029177677-17novlg6glliavomva8iunqa1c7bu50u.apps.googleusercontent.com',
     scopes: [
-      'https://www.googleapis.com/auth/calendar', // เพิ่ม scope สำหรับ Google Calendar
+      'https://www.googleapis.com/auth/calendar',
     ],
   );
   GoogleSignInAccount? _currentUser;
@@ -40,11 +40,10 @@ class _LoginPageState extends State<LoginPage> {
 
       // ตรวจสอบว่า accessToken และ idToken ไม่เป็น null
       if (googleAuth.accessToken == null || googleAuth.idToken == null) {
-        print('Access token or ID token is null');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Access token or ID token is null')),
         );
-        return; // ออกจากฟังก์ชันหาก token เป็น null
+        return;
       }
 
       // ใช้ signInWithProvider สำหรับ Supabase
@@ -58,16 +57,11 @@ class _LoginPageState extends State<LoginPage> {
       if (response.user == null) {
         final errorMessage =
             response.user ?? "Unknown error"; // ใช้ error message แทน
-        print('Error signing in with Supabase: $errorMessage');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Sign in failed: $errorMessage')),
         );
         return;
       }
-
-      // แสดง token
-      print('Access Token: ${googleAuth.accessToken}');
-      print('ID Token: ${googleAuth.idToken}');
 
       // นำผู้ใช้ไปยังหน้าปฏิทินเมื่อเข้าสู่ระบบสำเร็จ
       Navigator.pushReplacement(
@@ -77,7 +71,6 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     } catch (error) {
-      print('Error during sign-in: $error');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Sign in failed: $error')),
       );
@@ -89,6 +82,9 @@ class _LoginPageState extends State<LoginPage> {
       await _googleSignIn.signIn();
     } catch (error) {
       print('Error signing in with Google: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error signing in: $error')),
+      );
     }
   }
 
